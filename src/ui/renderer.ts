@@ -126,17 +126,20 @@ export class Renderer {
   private thinkingWord = "";
   private thinkingFrame = 0;
   private thinkingActive = false;
+  private thinkingStart = 0;
 
   // ── thinking spinner ──────────────────────────────────────────────────────
 
   startThinking(): void {
     this.thinkingActive = true;
     this.thinkingFrame = 0;
+    this.thinkingStart = Date.now();
     this.thinkingWord = THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)];
 
     const tick = () => {
+      const elapsed = ((Date.now() - this.thinkingStart) / 1000).toFixed(1);
       const frame = chalk.yellow(SPINNER_FRAMES[this.thinkingFrame % SPINNER_FRAMES.length]);
-      process.stdout.write(`\r${frame} ${chalk.dim(this.thinkingWord + "…")}`);
+      process.stdout.write(`\r${frame} ${chalk.dim(this.thinkingWord + "…")} ${chalk.dim(elapsed + "s")}`);
       this.thinkingFrame++;
     };
 
@@ -201,7 +204,6 @@ export class Renderer {
     }
   }
 
-  // ⏺ Update(src/cli.ts)
   printToolCall(name: string, args: string): void {
     let parsed: Record<string, unknown> = {};
     try { parsed = JSON.parse(args); } catch { /* ignore */ }
@@ -209,7 +211,20 @@ export class Renderer {
     const verb = TOOL_VERB[name] ?? capitalize(name);
     const argStr = formatToolArgs(name, parsed);
     const color = toolColor(name);
-    console.log(`\n${color(chalk.bold("⏺"))} ${color(chalk.bold(verb))}${chalk.dim("(")}${chalk.dim(argStr)}${chalk.dim(")")}`);
+    console.log(`\n${color(chalk.bold("●"))} ${color(chalk.bold(verb))} ${chalk.dim("(")}${chalk.dim(argStr)}${chalk.dim(")")}`);
+
+    if (name === "write_file" && parsed.content) {
+      const lines = String(parsed.content).split("\n");
+      const preview = lines.slice(0, 20);
+      console.log(chalk.dim("│"));
+      for (const line of preview) {
+        console.log(`${chalk.dim("│")} ${chalk.dim(line)}`);
+      }
+      if (lines.length > 20) {
+        console.log(`${chalk.dim("│")} ${chalk.dim(`… ${lines.length - 20} more lines`)}`);
+      }
+      console.log(chalk.dim("│"));
+    }
   }
 
   // ⎿  42 lines written

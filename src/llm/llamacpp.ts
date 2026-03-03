@@ -198,6 +198,10 @@ export class LlamaCppProvider implements LLMProvider {
       }
 
       // Build node-llama-cpp functions map; throw to capture the first tool call
+      let fullText = "";
+      let capturedCall: ToolCall | null = null;
+      const bufferedChunks: string[] = [];
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const functions: Record<string, any> = {};
       for (const tool of tools) {
@@ -211,10 +215,6 @@ export class LlamaCppProvider implements LLMProvider {
         };
       }
 
-      let fullText = "";
-      let capturedCall: ToolCall | null = null;
-      const bufferedChunks: string[] = [];
-
       try {
         await (session.prompt as Function)(lastUserMessage, {
           functions: tools.length > 0 ? functions : undefined,
@@ -223,27 +223,41 @@ export class LlamaCppProvider implements LLMProvider {
             bufferedChunks.push(chunk);
           },
         });
-        // No tool call — emit buffered text now
-        for (const chunk of bufferedChunks) {
-          onDelta?.({ type: "text", text: chunk });
-        }
       } catch (e) {
-        if (e instanceof ToolCallCaptured) {
-          // bufferedChunks contained raw "||fn(params)" grammar syntax — discard it
+        if (!(e instanceof ToolCallCaptured)) throw e;
+        // Handler threw — capture the tool call
+        fullText = "";
+        const id = `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        capturedCall = {
+          id,
+          type: "function",
+          function: { name: e.toolName, arguments: JSON.stringify(e.toolParams) },
+        };
+        onDelta?.({ type: "tool_call_start", index: 0, tool_call: capturedCall });
+        onDelta?.({ type: "tool_call_end", tool_call: capturedCall });
+      }
+
+      // Fallback: if no handler fired, parse grammar-format output directly.
+      // node-llama-cpp grammar forces: ||functionName(params: {JSON})
+      if (!capturedCall && tools.length > 0) {
+        const parsed = parseGrammarFunctionCall(fullText);
+        if (parsed && functions[parsed.name]) {
           fullText = "";
           const id = `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
           capturedCall = {
             id,
             type: "function",
-            function: {
-              name: e.toolName,
-              arguments: JSON.stringify(e.toolParams),
-            },
+            function: { name: parsed.name, arguments: parsed.args },
           };
           onDelta?.({ type: "tool_call_start", index: 0, tool_call: capturedCall });
           onDelta?.({ type: "tool_call_end", tool_call: capturedCall });
-        } else {
-          throw e;
+        }
+      }
+
+      // Only emit text if no tool call was captured
+      if (!capturedCall) {
+        for (const chunk of bufferedChunks) {
+          onDelta?.({ type: "text", text: chunk });
         }
       }
 
@@ -288,5 +302,46 @@ export class LlamaCppProvider implements LLMProvider {
       return sum + content.length + toolContent.length;
     }, 0);
     return Math.ceil(totalChars / 4);
+  }
+}
+
+/**
+ * Parse node-llama-cpp grammar-constrained function call text.
+ * Format: ||functionName(params: {JSON})
+ */
+function parseGrammarFunctionCall(text: string): { name: string; args: string } | null {
+  const match = text.match(/\|\|(\w+)\((?:params:\s*)?/);
+  if (!match || match.index == null) return null;
+
+  const name = match[1];
+  const jsonStart = match.index + match[0].length;
+
+  // Walk forward to find the balanced closing } of the JSON object
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let jsonEnd = -1;
+
+  for (let i = jsonStart; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\" && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) { jsonEnd = i + 1; break; }
+    }
+  }
+
+  if (jsonEnd === -1) return null;
+
+  const args = text.slice(jsonStart, jsonEnd);
+  try {
+    JSON.parse(args); // validate
+    return { name, args };
+  } catch {
+    return null;
   }
 }
