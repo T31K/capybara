@@ -285,7 +285,7 @@ export class Renderer {
     const cwd = truncatePath(rawCwd, 44);
 
     const isLocal = model.startsWith("llama:") || model.startsWith("ollama:");
-    const providerLabel = isLocal ? "Local Model" : "OpenAI API";
+    const providerLabel = isLocal ? "Local Model" : "Local Model";
 
     console.log();
     console.log(top);

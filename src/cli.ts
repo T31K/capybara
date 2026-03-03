@@ -26,7 +26,7 @@ program
   .option("-y, --yes", "Auto-accept all file writes and safe commands")
   .option("-c, --continue", "Continue the last session")
   .option("-r, --resume <id>", "Resume a specific session by ID")
-  .option("-m, --model <name>", "Model to use (default: gpt-4o)", "gpt-4o")
+  .option("-m, --model <name>", "Model to use (default: llama-qwen3.5-9b)", "llama-qwen3.5-9b")
   .option("--base-url <url>", "Custom OpenAI-compatible API base URL")
   .option("--cwd <path>", "Working directory (default: process.cwd())")
   .parse(process.argv);
@@ -194,18 +194,6 @@ async function main() {
   const parsed = parseModelString(model);
   const baseURL = opts.baseUrl ?? parsed.baseURL;
   const isLocal = !!baseURL || parsed.model.startsWith("llama:");
-
-  if (!isLocal && !process.env.OPENAI_API_KEY) {
-    console.error(
-      chalk.red(
-        "Error: OPENAI_API_KEY is not set.\n" +
-          "  export OPENAI_API_KEY=sk-...\n\n" +
-          "Or use a local model:\n" +
-          "  ai --model llama-qwen3.5-9b"
-      )
-    );
-    process.exit(1);
-  }
 
   const provider = createProvider({
     model: parsed.model,

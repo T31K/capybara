@@ -38,9 +38,12 @@ function resolveAbsPath(modelPath: string): string {
   if (modelPath.startsWith("~")) {
     return modelPath.replace(/^~/, os.homedir());
   }
+  if (modelPath.startsWith("./") || modelPath.startsWith("../")) {
+    return path.resolve(process.cwd(), modelPath);
+  }
   if (!path.isAbsolute(modelPath)) {
-    // Bare filename → look in ~/.cache/ai-cli/models/
-    return path.join(os.homedir(), ".cache", "ai-cli", "models", modelPath);
+    // Bare filename → look in ./models/ relative to cwd
+    return path.join(process.cwd(), "models", modelPath);
   }
   return modelPath;
 }
@@ -51,10 +54,10 @@ async function loadModel(modelPath: string) {
     if (!existsSync(resolved)) {
       throw new Error(
         `Model file not found: ${resolved}\n` +
-          `Download a GGUF model and place it at that path.\n` +
+          `Download a GGUF model and place it in the ./models/ directory.\n` +
           `Example:\n` +
-          `  huggingface-cli download Qwen/Qwen2.5-7B-Instruct-GGUF ` +
-          `Qwen2.5-7B-Instruct-Q4_K_M.gguf --local-dir ~/models`
+          `  curl -L -o models/Qwen3.5-9B-Q4_K_M.gguf \\\n` +
+          `    "https://huggingface.co/Qwen/Qwen3.5-9B-Instruct-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf"`
       );
     }
     const llama = await getLlamaInstance();

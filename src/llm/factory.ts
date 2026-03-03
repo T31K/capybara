@@ -13,28 +13,22 @@ export interface ModelPreset {
 
 export const MODEL_PRESETS: ModelPreset[] = [
   {
-    id: "gpt-4o",
-    label: "GPT-4o (OpenAI)",
-    model: "gpt-4o",
-    apiKeyEnv: "OPENAI_API_KEY",
+    id: "llama-qwen3.5-9b",
+    label: "Qwen3.5 9B Q4 (Alibaba)",
+    model: "llama:./models/Qwen3.5-9B-Q4_K_M.gguf",
+    local: true,
   },
   {
     id: "llama-qwen3.5-0.8b",
     label: "Qwen3.5 0.8B Q4 (Alibaba)",
-    model: "llama:~/models/Qwen3.5-0.8B-Q4_K_M.gguf",
+    model: "llama:./models/Qwen3.5-0.8B-Q4_K_M.gguf",
     local: true,
   },
   {
     id: "llama-qwen3.5-4b",
     label: "Qwen3.5 4B Q4 (Alibaba)",
-    model: "llama:~/models/Qwen3.5-4B-Q4_K_M.gguf",
+    model: "llama:./models/Qwen3.5-4B-Q4_K_M.gguf",
     local: true,
-  },
-  {
-    id: "gpt-4o-mini",
-    label: "GPT-4o Mini (OpenAI)",
-    model: "gpt-4o-mini",
-    apiKeyEnv: "OPENAI_API_KEY",
   },
   {
     id: "ollama-qwen3.5-0.6b",
@@ -74,25 +68,19 @@ export const MODEL_PRESETS: ModelPreset[] = [
   {
     id: "llama-qwen2.5-7b",
     label: "Qwen2.5 7B Instruct Q4 (Alibaba)",
-    model: "llama:~/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+    model: "llama:./models/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
     local: true,
   },
   {
     id: "llama-qwen2.5-3b",
     label: "Qwen2.5 3B Instruct Q4 (Alibaba)",
-    model: "llama:~/models/Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+    model: "llama:./models/Qwen2.5-3B-Instruct-Q4_K_M.gguf",
     local: true,
   },
   {
     id: "llama-qwen3-4b",
     label: "Qwen3 4B Q4 (Alibaba)",
-    model: "llama:~/models/Qwen3-4B-Q4_K_M.gguf",
-    local: true,
-  },
-  {
-    id: "llama-qwen3.5-9b",
-    label: "Qwen3.5 9B Q4 (Alibaba)",
-    model: "llama:~/models/Qwen3.5-9B-Q4_K_M.gguf",
+    model: "llama:./models/Qwen3-4B-Q4_K_M.gguf",
     local: true,
   },
 ];
@@ -104,7 +92,7 @@ export interface CreateProviderOptions {
 }
 
 export function createProvider(opts: CreateProviderOptions = {}): LLMProvider {
-  const model = opts.model ?? "gpt-4o";
+  const model = opts.model ?? "llama:./models/Qwen3.5-9B-Q4_K_M.gguf";
 
   if (model.startsWith("llama:")) {
     const modelPath = resolveModelPath(model.slice("llama:".length));
