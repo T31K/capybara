@@ -15,9 +15,27 @@ An agentic AI CLI tool — a local alternative to Claude Code that can run any m
 
 ## Install
 
+### 1. Install dependencies
+
 ```bash
 npm install
+```
+
+### 2. Download the default model (Qwen3.5 9B Q4)
+
+```bash
+mkdir -p models
+curl -L -o models/Qwen3.5-9B-Q4_K_M.gguf \
+  "https://huggingface.co/Qwen/Qwen3.5-9B-Instruct-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf"
+```
+
+Model files go in the `./models/` directory relative to where you run the CLI.
+
+### 3. Build and run
+
+```bash
 npm run build
+node dist/cli.js
 ```
 
 
